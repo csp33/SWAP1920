@@ -185,9 +185,57 @@ En esta guía configuraremos la interfaz sólo anfitrión manualmente en una má
 	\item Hacemos \emph{curl} desde la otra máquina y comprobamos que recibimos la respuesta esperada:
 	\begin{figure}[H]
 		\centering
-		\includegraphics[scale=0.65]{/p1/curl_ok.png}
+		\includegraphics[scale=0.5]{/p1/curl_ok.png}
 	\end{figure}
 \end{enumerate}
+
+\section{Práctica 2}
+
+En esta práctica clonaremos información entre las máquinas.
+
+\begin{enumerate}
+	\item Comenzamos copiando un directorio de m1 a la carpeta de usuario de \emph{m2}:
+	\begin{lstlisting}<HTML>
+	m1 > mkdir test ; touch test/file1.txt test/file2.txt
+	m1 > scp -r test $M2_IP:~
+	\end{lstlisting}
+	Ejecutamos \emph{ls -lR} en \emph{M2} para ver el resultado:
+	\begin{figure}[H]
+		\centering
+		\includegraphics[scale=0.5]{/p2/scp_ok.png}
+	\end{figure}
+	\item Para no tener que introducir la contraseña en cada conexión SSH configuraremos la autenticación mediante clave público-privada RSA:
+	\begin{lstlisting}<HTML>
+	m2 > ssh-keygen -b 4096 -t rsa
+	\end{lstlisting}
+	Pulsamos Enter tres veces.
+	\item Copiamos la clave a M1:
+	\begin{lstlisting}<HTML>
+	m2 > ssh-copy-id $M1_IP
+	\end{lstlisting}
+	Introducimos la clave \emph{Swap1234}
+	\item Probamos a realizar la conexión. Veremos que no nos pide la clave.
+	\begin{figure}[H]
+		\centering
+		\includegraphics[scale=0.65]{/p2/ssh_ok.png}
+	\end{figure}
+	\item Por último programamos una tarea de clonación que se ejecutará cada dos horas. De esta forma el contenido de M1 se replicará en M2 cada dos horas. Usaremos \emph{crontab} para ello:
+	\item Lo primero que debemos hacer es configurar la clave público privada por ssh en M1 para que no se pida en cada copia (igual que en el paso anterior).
+	\item Después damos permisos a nuestro usuario para escribir en el directorio:
+	\begin{lstlisting}
+	m2 > sudo chown $USER:$USER -R /var/www
+	\end{lstlisting}
+	\item Configuramos el clonado:
+	\begin{lstlisting}
+	m1 > sudo nano /etc/crontab
+	\end{lstlisting}
+	Añadimos la siguiente línea:
+	\begin{lstlisting}
+	00 */12 * * * csp98 scp -r /var/www/ 192.168.56.103:/var/
+	\end{lstlisting}
+	\item Si queremos probar el funcionamiento del comando podemos establecer una periodicidad menor, crear un archivo en M1 y ver que se replica en M2.
+\end{enumerate}
+
 
 
 
