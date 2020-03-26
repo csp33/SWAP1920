@@ -123,7 +123,7 @@ En esta guía configuraremos la interfaz sólo anfitrión manualmente en una má
 		\centering
 		\includegraphics[scale=0.65]{/p1/host_only.png}
 	\end{figure}
-	\item Vamos a los ajustes de red de la máquina y "conectamos" el adaptador que acabamos de crear.
+	\item Vamos a los ajustes de red de la máquina y ''conectamos'' el adaptador que acabamos de crear.
 	\begin{figure}[H]
 		\centering
 		\includegraphics[scale=0.65]{/p1/host_only_2.png}
@@ -163,7 +163,7 @@ En esta guía configuraremos la interfaz sólo anfitrión manualmente en una má
 	\begin{lstlisting}
 	m1> sudo apt install -y openssh-server openssh-client apache2 mysql-server mysql-client
 	\end{lstlisting}
-	\item Pasamos ahora a la configuración de \emph{m2}. Para ello seguimos los pasos anteriores. Como el adaptador sólo anfitrión ya está creado, el asistente de instalación lo configurará automáticamente. Lo único que tenemos que hacer es "conectarlo" a la máquina como hicimos antes.
+	\item Pasamos ahora a la configuración de \emph{m2}. Para ello seguimos los pasos anteriores. Como el adaptador sólo anfitrión ya está creado, el asistente de instalación lo configurará automáticamente. Lo único que tenemos que hacer es ''conectarlo'' a la máquina como hicimos antes.
 	\item Cuando termine la instalación, ejecutamos el comando anterior para instalar la pila LAMP.
 	\item Probamos la conexión SSH conectando las máquinas entre sí. Para facilitar las conexiones podemos guardar las IPs en variables:
 	\begin{figure}[H]
@@ -195,7 +195,7 @@ En esta práctica clonaremos información entre las máquinas.
 
 \begin{enumerate}
 	\item Comenzamos copiando un directorio de m1 a la carpeta de usuario de \emph{m2}:
-	\begin{lstlisting}<HTML>
+	\begin{lstlisting}
 	m1 > mkdir test ; touch test/file1.txt test/file2.txt
 	m1 > scp -r test $M2_IP:~
 	\end{lstlisting}
@@ -210,7 +210,7 @@ En esta práctica clonaremos información entre las máquinas.
 	\end{lstlisting}
 	Pulsamos Enter tres veces.
 	\item Copiamos la clave a M1:
-	\begin{lstlisting}<HTML>
+	\begin{lstlisting}
 	m2 > ssh-copy-id $M1_IP
 	\end{lstlisting}
 	Introducimos la clave \emph{Swap1234}
@@ -235,6 +235,103 @@ En esta práctica clonaremos información entre las máquinas.
 	\end{lstlisting}
 	\item Si queremos probar el funcionamiento del comando podemos establecer una periodicidad menor, crear un archivo en M1 y ver que se replica en M2.
 \end{enumerate}
+
+\section{Práctica 3}
+En esta práctica configuraremos un balanceador de carga (\emph{nginx}).
+\begin{enumerate}
+	\item Comenzamos creando una nueva máquina (M3) e instalando Ubuntu Server. Le añadiremos también el adaptador \emph{host-only}.
+	\item Almacenamos el alias de ambas IPs para ahorrar tiempo en futuros comandos:
+		\begin{lstlisting}
+		m3 > echo "M1_IP=192.168.56.100" >> .bashrc ; source .bashrc
+		m3 > echo "M2_IP=192.168.56.103" >> .bashrc ; source .bashrc
+		\end{lstlisting}
+	\item Instalamos nginx y lo lanzamos:
+		\begin{lstlisting}
+		m3 > sudo apt update ; sudo apt install nginx
+		m3 > sudo systemctl start nginx
+		\end{lstlisting}
+	\item Como solo queremos que funcione como balanceador de carga, desactivamos la funcionalidad de servidor web. Para ello editamos el archivo de configuración y comentamos la siguiente línea:
+		\begin{lstlisting}
+		m3 > sudo nano /etc/nginx/nginx.conf
+		\end{lstlisting}
+			\begin{lstlisting}
+			# include /etc/nginx/sites-enabled/*
+			\end{lstlisting}
+		\item Configuramos el \emph{upstream}, máquinas entre las que se dividirá el tráfico:
+		\begin{lstlisting}
+		m3 > sudo nano /etc/nginx/conf.d/default.conf
+		\end{lstlisting}
+		Insertamos el siguiente contenido:
+		\begin{lstlisting}
+		upstream servidoresSWAP{
+			server 192.168.56.100;
+			server 192.168.56.103;
+		}
+
+		server{
+			listen 80;
+			server_name balanceador;
+			access_log /var/log/nginx/balanceador.access.log;
+			error_log /var/log/nginx/balanceador.error.log;
+			root /var/www/;
+			location /
+			{
+				proxy_pass http://servidoresSWAP;
+				proxy_set_header Host $host;
+				proxy_set_header X-Real-IP $remote_addr;
+				proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+				proxy_http_version 1.1;
+				proxy_set_header Connection "";
+			}
+		}
+		\end{lstlisting}
+		\item Reiniciamos el servicio para que los cambios surtan efecto:
+		\begin{lstlisting}
+		m3 > sudo service nginx restart
+		\end{lstlisting}
+		\item Arrancamos M1 y M2. Para diferenciar a cual de ellas se envía la petición a través del balanceador de carga, modificaremos el archivo \emph{/var/www/html/ejemplo.html} de cada una:
+		\textcolor{red}{IMÁGENES DE AMBOS HTML}
+		\item Consultamos la IP de M3 y entramos a \emph{192.168.56.104/ejemplo.html} desde el navegador de nuestro host:
+		\begin{lstlisting}
+		m3 > ip addr | grep 192
+		\end{lstlisting}
+		\item Recargamos varias veces la página y podremos ver como la petición la atiende un servidor u otro.
+		\textcolor{red}{IMÁGENES DE AMBAS WEBS}
+		\item Probaremos ahora a repartir la carga de forma desigual. M1 atenderá el doble de peticiones que M2. Para ello editamos el siguiente archivo de configuración y añadimos la directiva \emph{weight}:
+		\item Configuramos el \emph{upstream}, máquinas entre las que se dividirá el tráfico:
+		\begin{lstlisting}
+		m3 > sudo nano /etc/nginx/conf.d/default.conf
+		\end{lstlisting}
+		\begin{lstlisting}
+		upstream servidoresSWAP{
+			server 192.168.56.100 weight=2;
+			server 192.168.56.103 weight=1;
+		}
+		\end{lstlisting}
+		\item Reiniciamos el servicio y probamos a acceder con el navegador a la IP anterior y refrescar la página.
+		\item Tambien podemos especificar políticas para mantener la sesión:
+		\begin{itemize}
+			\item \textbf{Keep-alive}: las peticiones se enviarán al mismo servidor durante $n$ segundos.
+			\begin{lstlisting}
+			upstream servidoresSWAP{
+				server 192.168.56.100;
+				server 192.168.56.103;
+				keepalive <n>;
+			}
+			\end{lstlisting}
+			\item \textbf{IP-hash}. Una vez que un servidor atiende una IP, la atenderá siempre. No se recomienda su uso (no se balancea la carga de forma equitativa).
+			\begin{lstlisting}
+			upstream servidoresSWAP{
+				ip_hash;
+				server 192.168.56.100;
+				server 192.168.56.103;
+			}
+			\end{lstlisting}
+		\end{itemize}
+
+
+	\end{enumerate}
+
 
 
 
