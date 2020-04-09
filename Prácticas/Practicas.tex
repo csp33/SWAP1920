@@ -225,116 +225,188 @@ En esta práctica clonaremos información entre las máquinas.
 	\begin{lstlisting}
 	m2 > sudo chown $USER:$USER -R /var/www
 	\end{lstlisting}
+	\item Instalamos la herramienta \emph{rsync} en M2:
+	\begin{lstlisting}
+	m2 > sudo apt install -y rsync
+	\end{lstlisting}
 	\item Configuramos el clonado:
 	\begin{lstlisting}
-	m1 > sudo nano /etc/crontab
+	m2 > sudo nano /etc/crontab
 	\end{lstlisting}
 	Añadimos la siguiente línea:
 	\begin{lstlisting}
-	00 */12 * * * csp98 scp -r /var/www/ 192.168.56.103:/var/
+	00 */12 * * * csp98 rsync -avz -e ssh 192.168.56.100:/var/www /var/
 	\end{lstlisting}
 	\item Si queremos probar el funcionamiento del comando podemos establecer una periodicidad menor, crear un archivo en M1 y ver que se replica en M2.
 \end{enumerate}
-
+\newpage
 \section{Práctica 3}
-En esta práctica configuraremos un balanceador de carga (\emph{nginx}).
+En esta práctica configuraremos varios balanceadores de carga y los probaremos mediante tests de estrés.
+\subsection{Instalación de balanceadores}
 \begin{enumerate}
 	\item Comenzamos creando una nueva máquina (M3) e instalando Ubuntu Server. Le añadiremos también el adaptador \emph{host-only}.
 	\item Almacenamos el alias de ambas IPs para ahorrar tiempo en futuros comandos:
 		\begin{lstlisting}
-		m3 > echo "M1_IP=192.168.56.100" >> .bashrc ; source .bashrc
-		m3 > echo "M2_IP=192.168.56.103" >> .bashrc ; source .bashrc
+	m3 > echo "M1_IP=192.168.56.100" >> .bashrc ; source .bashrc
+	m3 > echo "M2_IP=192.168.56.103" >> .bashrc ; source .bashrc
 		\end{lstlisting}
 	\item Instalamos nginx y lo lanzamos:
 		\begin{lstlisting}
-		m3 > sudo apt update ; sudo apt install nginx
-		m3 > sudo systemctl start nginx
+	m3 > sudo apt update ; sudo apt install nginx
+	m3 > sudo systemctl start nginx
 		\end{lstlisting}
 	\item Como solo queremos que funcione como balanceador de carga, desactivamos la funcionalidad de servidor web. Para ello editamos el archivo de configuración y comentamos la siguiente línea:
 		\begin{lstlisting}
-		m3 > sudo nano /etc/nginx/nginx.conf
+	m3 > sudo nano /etc/nginx/nginx.conf
 		\end{lstlisting}
 			\begin{lstlisting}
-			# include /etc/nginx/sites-enabled/*
+	# include /etc/nginx/sites-enabled/*
 			\end{lstlisting}
 		\item Configuramos el \emph{upstream}, máquinas entre las que se dividirá el tráfico:
 		\begin{lstlisting}
-		m3 > sudo nano /etc/nginx/conf.d/default.conf
+	m3 > sudo nano /etc/nginx/conf.d/default.conf
 		\end{lstlisting}
 		Insertamos el siguiente contenido:
 		\begin{lstlisting}
-		upstream servidoresSWAP{
-			server 192.168.56.100;
-			server 192.168.56.103;
-		}
+	upstream servidoresSWAP{
+		server 192.168.56.100;
+		server 192.168.56.103;
+	}
 
-		server{
-			listen 80;
-			server_name balanceador;
-			access_log /var/log/nginx/balanceador.access.log;
-			error_log /var/log/nginx/balanceador.error.log;
-			root /var/www/;
-			location /
-			{
-				proxy_pass http://servidoresSWAP;
-				proxy_set_header Host $host;
-				proxy_set_header X-Real-IP $remote_addr;
-				proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-				proxy_http_version 1.1;
-				proxy_set_header Connection "";
-			}
+	server{
+		listen 80;
+		server_name balanceador;
+		access_log /var/log/nginx/balanceador.access.log;
+		error_log /var/log/nginx/balanceador.error.log;
+		root /var/www/;
+		location /
+		{
+			proxy_pass http://servidoresSWAP;
+			proxy_set_header Host $host;
+			proxy_set_header X-Real-IP $remote_addr;
+			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+			proxy_http_version 1.1;
+			proxy_set_header Connection "";
 		}
+	}
 		\end{lstlisting}
 		\item Reiniciamos el servicio para que los cambios surtan efecto:
 		\begin{lstlisting}
-		m3 > sudo service nginx restart
+	m3 > sudo service nginx restart
 		\end{lstlisting}
 		\item Arrancamos M1 y M2. Para diferenciar a cual de ellas se envía la petición a través del balanceador de carga, modificaremos el archivo \emph{/var/www/html/ejemplo.html} de cada una:
-		\textcolor{red}{IMÁGENES DE AMBOS HTML}
+		\begin{figure}[H]
+			\centering
+			\includegraphics[scale=0.5]{/p3/web_contents.png}
+		\end{figure}
 		\item Consultamos la IP de M3 y entramos a \emph{192.168.56.104/ejemplo.html} desde el navegador de nuestro host:
 		\begin{lstlisting}
-		m3 > ip addr | grep 192
+	m3 > ip addr | grep 192
 		\end{lstlisting}
 		\item Recargamos varias veces la página y podremos ver como la petición la atiende un servidor u otro.
-		\textcolor{red}{IMÁGENES DE AMBAS WEBS}
 		\item Probaremos ahora a repartir la carga de forma desigual. M1 atenderá el doble de peticiones que M2. Para ello editamos el siguiente archivo de configuración y añadimos la directiva \emph{weight}:
 		\item Configuramos el \emph{upstream}, máquinas entre las que se dividirá el tráfico:
 		\begin{lstlisting}
-		m3 > sudo nano /etc/nginx/conf.d/default.conf
+	m3 > sudo nano /etc/nginx/conf.d/default.conf
 		\end{lstlisting}
 		\begin{lstlisting}
-		upstream servidoresSWAP{
-			server 192.168.56.100 weight=2;
-			server 192.168.56.103 weight=1;
-		}
+	upstream servidoresSWAP{
+		server 192.168.56.100 weight=2;
+		server 192.168.56.103 weight=1;
+	}
 		\end{lstlisting}
 		\item Reiniciamos el servicio y probamos a acceder con el navegador a la IP anterior y refrescar la página.
 		\item Tambien podemos especificar políticas para mantener la sesión:
 		\begin{itemize}
 			\item \textbf{Keep-alive}: las peticiones se enviarán al mismo servidor durante $n$ segundos.
 			\begin{lstlisting}
-			upstream servidoresSWAP{
-				server 192.168.56.100;
-				server 192.168.56.103;
-				keepalive <n>;
-			}
+		upstream servidoresSWAP{
+			server 192.168.56.100;
+			server 192.168.56.103;
+			keepalive <n>;
+		}
 			\end{lstlisting}
 			\item \textbf{IP-hash}. Una vez que un servidor atiende una IP, la atenderá siempre. No se recomienda su uso (no se balancea la carga de forma equitativa).
 			\begin{lstlisting}
-			upstream servidoresSWAP{
-				ip_hash;
-				server 192.168.56.100;
-				server 192.168.56.103;
-			}
+		upstream servidoresSWAP{
+			ip_hash;
+			server 192.168.56.100;
+			server 192.168.56.103;
+		}
 			\end{lstlisting}
 		\end{itemize}
-
-
-	\end{enumerate}
-
-
-
-
-
+	\item Ahora pasamos a \emph{haproxy}, otro balanceador. Comenzamos instaládolo:
+	\begin{lstlisting}
+	m3 > sudo apt install -y haproxy
+	\end{lstlisting}
+	\item Configuramos el balanceador:
+	\begin{lstlisting}
+	m3 > sudo nano /etc/haproxy/haproxy.cfg
+	\end{lstlisting}
+	Introducimos las siguientes líneas al final del archivo:
+	\begin{lstlisting}
+	frontend http-in
+		bind *:80
+		default_backend servidoresSWAP
+	backend servidoresSWAP
+		server m1 192.168.56.100:80 maxconn 32
+		server m2 192.168.56.103:80 maxconn 32
+	\end{lstlisting}
+	\item Desactivamos \emph{nginx} y reiniciamos \emph{haproxy}:
+	\begin{lstlisting}
+	m3 > sudo service nginx stop
+	m3 > sudo service haproxy restart
+	\end{lstlisting}
+	\item Comprobamos su funcionamiento:
+	\begin{figure}[H]
+		\centering
+		\includegraphics[scale=0.65]{/p3/test_haproxy.png}
+	\end{figure}
+	\item Por último usaremos un balanceador más, \emph{pen}. Comenzamos instalándolo:
+	\begin{lstlisting}
+	m3 > sudo apt install -y pen
+	\end{lstlisting}
+	\item Paramos \emph{haproxy}:
+	\begin{lstlisting}
+	m3 > sudo service haproxy stop
+	\end{lstlisting}
+	\item Establecemos el balanceador con el algoritmo round-robin:
+	\begin{lstlisting}
+	m3 > sudo pen 80 -r $M1_IP:80 $M2_IP:80
+	\end{lstlisting}
+	\item Comprobamos que funciona:
+	\begin{figure}[H]
+		\centering
+		\includegraphics[scale=0.65]{/p3/pen_ok.png}
+	\end{figure}
+\end{enumerate}
+\subsection{Test de rendimiento en balanceadores mediante \emph{ab}}
+En esta sección someteremos los distintos balanceadores a una carga alta mediante \emph{Apache Benchmark} y mediremos su rendimiento en función del tiempo de respuesta obtenido.
+\begin{enumerate}
+	\item Comenzamos instalando la utilidad en nuestro host:
+	\begin{lstlisting}
+	host > sudo apt install -y apache2-utils
+	\end{lstlisting}
+	\item Ejecutamos el siguiente test contra los distintos balanceadores:
+	\begin{lstlisting}
+	host > ab -n 10000 -c 10 http://192.168.56.104/ejemplo.html
+	\end{lstlisting}
+\end{enumerate}
+Los tiempos medios de respuesta obtenidos tras realizar tres ejecuciones y calcular la media aritmética fueron los siguientes:
+\begin{figure}[H]
+	\centering
+	\begin{tabular}{|c|c|}
+		\hline
+		\textbf{Balanceador} & \textbf{Tiempo de respuesta por petición (ms)} \\
+		\hline
+		\emph{haproxy} & 5.054 \\
+		\hline
+		\emph{nginx} & 6.458 \\
+		\hline
+		\emph{pen} & 5.353 \\
+		\hline
+	\end{tabular}
+\end{figure}
+En este caso concluimos con que \emph{haproxy} ofrece mejor rendimiento que \emph{nginx} y \emph{pen}.
 
 \end{document}
