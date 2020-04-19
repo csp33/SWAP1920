@@ -28,6 +28,11 @@
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric, arrows, chains, calc,positioning,fit,decorations.pathreplacing}
 \usepackage[framemethod=tikz]{mdframed}
+\usepackage{inconsolata}
+
+\definecolor{dkgreen}{rgb}{0,.6,0}
+\definecolor{dkblue}{rgb}{0,0,.6}
+\definecolor{dkyellow}{cmyk}{0,0,.8,.3}
 
 \graphicspath{ {../../img/}}
 \selectlanguage{spanish}
@@ -48,6 +53,10 @@
 \lstset{
   breaklines=true,
   postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+	columns=fullflexible,
+	showstringspaces=false,
+	language=bash,
+	basicstyle=\ttfamily
 }
 
 
@@ -58,7 +67,6 @@
 \makeindex
 \begin{document}
 \definecolor{light-gray}{gray}{0.95}
-\lstset{columns=fullflexible,basicstyle=\ttfamily}
 \surroundwithmdframed[
   hidealllines=true,
   backgroundcolor=light-gray,
@@ -83,7 +91,7 @@
   \textsc{ \Large Servidores Web de Altas Prestaciones\\[0.2cm]}
   \textsc{GRADO EN INGENIERÍA INFORMÁTICA}\\[1cm]
 
-  {\Huge\bfseries Instalación de ZEVENET \\}
+  {\Huge\bfseries Ejercicios opcionales T4 \\}
  \end{minipage}
 
  \vspace{1.5cm}
@@ -106,74 +114,33 @@
 \tableofcontents{}
 \newpage
 
-
-En esta tarea instalaremos Zevenet en una nueva máquina y la configuraremos como balanceador de carga.
-
-\section{Instalación}
+\section{Servicio para obtener uso de RAM y CPU}
+En este ejercicio implementaremos un servicio en M1 que nos dará el uso de CPU (últimos 15 minutos) y el de RAM del servidor. Para ello desarrollaremos un script en \emph{PHP}.
 \begin{enumerate}
-	\item Descargamos la ISO de Zevenet desde https://github.com/zevenet/zlb/releases
-	\item Creamos una máquina virtual, la conectamos a la NAT y a la interfaz Host-only.
-	\item Arrancamos desde la ISO descargada.
-	\item Elegimos idioma y distribución de teclado.
-	\item Cuando se nos pidan, especificamos los siguientes parámetros:
-	\begin{itemize}
-		\item IP: 192.168.56.105/24
-		\item Máscara de red: 255.255.255.0
-		\item Gateway y servidor DNS: 192.168.56.1
-		\item Nombre del host: M4
-		\item Nombre de dominio: servidoresSWAP
-		\item Clave de superusuario: Swap1234
-		\item Zona horaria: Madrid
-	\end{itemize}
-	\item Elegimos el particionado guiado usando todo el disco (todos los archivos en una partición) e instalamos GRUB.
-	\item Cuando termine la instalación, reiniciamos la máquina y nos logueamos (root/Swap1234).
-	\item Configuramos las interfaces de red con \emph{netplan}:
+	\item Comenzamos instalando las librerías necesarias en nuestro servidor web para que ejecute código PHP:
 	\begin{lstlisting}
-	m4 > nano /etc/netplan/nets.yaml
+	m1 > sudo apt install php libapache2-mod-php
+	m1 > sudo a2enmod mpm_prefork && sudo a2enmod php7.0
+	m1 > sudo service apache2 restart
 	\end{lstlisting}
-	\begin{lstlisting}
-	network:
-		version: 2
-		renderer: networkd
-		ethernets:
-			eth0:
-				dhcp4: yes
-			eth1:
-				dhcp4: yes
+	\item Escribimos el siguiente script:
+	\begin{lstlisting}[language=bash]
+	m1 > sudo nano /var/www/html/usage.php
 	\end{lstlisting}
-	\begin{lstlisting}
-	m4 > netplan apply
+	\begin{lstlisting}[language=php, keywordstyle=\color{dkblue}, commentstyle=\color{gray}, stringstyle=\color{red}, identifierstyle=\color{dkgreen}]
+	<?php
+		# Get CPU usage in the last 15 mins.
+		$CPU = sys_getloadavg()[2];
+		# Get RAM usage by calling 'free' shell command and filtering.
+		$RAM = shell_exec("free | grep Mem | awk '{print $3/$2 * 100.0}'");
+		echo "CPU: " . $CPU . "% RAM: " . $RAM . "%";
+	?>
 	\end{lstlisting}
-	\item Accedemos a la GUI desde el navegador del host e iniciamos sesión con las credenciales \emph{root/Swap1234}:
-	\begin{lstlisting}
-	https://<IP M4>:444
-	\end{lstlisting}
-	\item Entramos al menú \emph{Local System Load Balancer (LSLB)} y damos a \emph{Create farm}:
+	\item Comprobamos el funcionamiento del servicio estresando el servidor mediante \emph{Apache Benchmark}:
 	\begin{figure}[H]
 		\centering
-		\includegraphics[scale=0.5]{/t4/zevenet-1.png}
-	\end{figure}
-	\item Configuramos los parámetros:
-	\begin{figure}[H]
-		\centering
-		\includegraphics[scale=0.5]{/t4/zevenet-2.png}
-	\end{figure}
-	\item Entramos en los ajustes de la granja:
-	\begin{figure}[H]
-		\centering
-		\includegraphics[scale=0.5]{/t4/farm-settings.png}
-	\end{figure}
-	\item Damos de alta un nuevo servicio (\emph{New Service}). Lo llamaremos \emph{ejemplo}.
-	\item Añadimos los backends (M1 y M2). Le damos un timeout de 60 segundos y un peso de 1.
-	\item Por último, damos en submit y reiniciamos la granja.
-	\item Comprobamos su funcionamiento mediante cURL.
-	\begin{figure}[H]
-		\centering
-		\includegraphics[scale=0.5]{/t4/zevenet-ok.png}
+		\includegraphics[width=\textwidth]{/t4/usage_ok.png}
 	\end{figure}
 \end{enumerate}
-
-Este balanceador es mucho más complicado y lento de instalar y configurar que los vistos anteriormente. Sin embargo, ofrece características que los otros no, como un monitor del estado del sistema, GUI de administración, etc.
-
 
 \end{document}
