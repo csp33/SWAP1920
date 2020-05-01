@@ -449,8 +449,11 @@ En esta práctica configuraremos la seguridad de nuestra granfa mediante un cert
 	m1 > sudo a2ensite default-ssl
 	m1 > sudo service apache2 restart
 	\end{lstlisting}
-	\item Accedemos desde el host a \emph{https://<M1_IP>} y obtenemos la información del certificado:
-	FIGURE CERT.PNG
+	\item Accedemos desde el host a \emph{https://IP M1} y obtenemos la información del certificado:
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.5\textwidth]{p4/cert.png}
+	\end{figure}
 	\item Ahora configuraremos la granja para que funciones bajo SSL. Comenzamos copiando el certificado y la clave a M2 y M3:
 	\begin{lstlisting}
 	m1 > sudo scp /etc/apache2/ssl/apache.crt <nombre_usuario>@<IP M2>:/home/<nombre_usuario>/apache.crt
@@ -475,6 +478,9 @@ En esta práctica configuraremos la seguridad de nuestra granfa mediante un cert
 	m1 > sudo systemctl restart nginx
 	\end{lstlisting}
 	\item Comprobamos desde el navegador que ya podemos hacer peticiones HTTPS.
+\end{enumerate}
+\subsection{Configuración del cortafuegos}
+	\begin{enumerate}
 	\item Ahora configuraremos un cortafuegos para que a M1 y M2 solo se pueda acceder desde el balanceador. Para ello elaboraremos un script:
 	\begin{lstlisting}
 	#!/bin/bash
@@ -484,7 +490,7 @@ En esta práctica configuraremos la seguridad de nuestra granfa mediante un cert
 	iptables -X;
 	iptables -Z;
 	iptables -t nat -F;
-	# Denegamos todo el tráfico entrante (política inicial)
+	# Denegamos todo el trafico entrante (politica inicial)
 	iptables -P INPUT DROP;
 	iptables -P OUTPUT ACCEPT;
 	iptables -P FORWARD DROP;
@@ -512,7 +518,7 @@ En esta práctica configuraremos la seguridad de nuestra granfa mediante un cert
 	iptables -X;
 	iptables -Z;
 	iptables -t nat -F;
-	# Denegamos todo el tráfico entrante (política inicial)
+	# Denegamos todo el trafico entrante (politica inicial)
 	iptables -P INPUT DROP;
 	iptables -P OUTPUT ACCEPT;
 	iptables -P FORWARD DROP;
