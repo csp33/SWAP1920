@@ -409,4 +409,123 @@ Los tiempos medios de respuesta obtenidos tras realizar tres ejecuciones y calcu
 \end{figure}
 En este caso concluimos con que \emph{haproxy} ofrece mejor rendimiento que \emph{nginx} y \emph{pen}.
 
+\section{Práctica 4}
+
+En esta práctica configuraremos la seguridad de nuestra granfa mediante un certificado y un cortafuegos.
+
+\subsection{Creación del certificado autofirmado para acceder por HTTPS}
+
+\begin{enumerate}
+	\item Comenzamos activando el módulo SSL de Apache en M1:
+	\begin{lstlisting}
+	m1 > sudo a2enmod ssl; sudo service apache2 restart
+	\end{lstlisting}
+	\item Creamos el certificado:
+	\begin{lstlisting}
+	m1 > sudo mkdir /etc/apache2/ssl
+	m1 > sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/apache2/ssl/apache.key -out /etc/apache2/ssl/apache.crt
+	\end{lstlisting}
+	\item Configuramos los siguientes datos:
+		\begin{itemize}
+			\item \textbf{Country name}: ES.
+			\item \textbf{Province name}: Granada.
+			\item \textbf{Locality name}: Granada.
+			\item \textbf{Organization name}: SWAP.
+			\item \textbf{Organizational unit name}: P4.
+			\item \textbf{Common name}: nuestro usuario UGR.
+			\item \textbf{Email address}: nuestro email UGR.
+		\end{itemize}
+	\item Ahora utilizaremos ese certificado en M1. Para ello, debemos editar la configuración de nuestro servidor web y especificar la ruta de los certificados:
+	\begin{lstlisting}
+	m1 > sudo nano /etc/apache2/sites-available/default-ssl.conf
+	\end{lstlisting}
+	Sustituimos las siguientes líneas bajo \emph{SSLEngine on}:
+	\begin{lstlisting}
+	SSLCertificateFile /etc/apache2/ssl/apache.crt
+	SSLCertificateKeyFile /etc/apache2/ssl/apache.key
+	\end{lstlisting}
+	\item Activamos el sitio default-ssl y reiniciamos apache:
+	\begin{lstlisting}
+	m1 > sudo a2ensite default-ssl
+	m1 > sudo service apache2 restart
+	\end{lstlisting}
+	\item Accedemos desde el host a \emph{https://<M1_IP>} y obtenemos la información del certificado:
+	FIGURE CERT.PNG
+	\item Ahora configuraremos la granja para que funciones bajo SSL. Comenzamos copiando el certificado y la clave a M2 y M3:
+	\begin{lstlisting}
+	m1 > sudo scp /etc/apache2/ssl/apache.crt <nombre_usuario>@<IP M2>:/home/<nombre_usuario>/apache.crt
+	m1 > sudo scp /etc/apache2/ssl/apache.crt <nombre_usuario>@<IP M2>:/home/<nombre_usuario>/apache.key
+
+	m1 > sudo scp /etc/apache2/ssl/apache.crt <nombre_usuario>@<IP M3>:/home/<nombre_usuario>/apache.crt
+	m1 > sudo scp /etc/apache2/ssl/apache.crt <nombre_usuario>@<IP M3>:/home/<nombre_usuario>/apache.key
+	\end{lstlisting}
+	\item Movemos los archivos de certificado a \emph{/etc/apache2/ssl} y realizamos los pasos anteriores en M2.
+	\item Creamos un nuevo server en nginx (M3):
+	\begin{lstlisting}
+	m1 > sudo nano /etc/nginx/conf.d/default.conf
+	\end{lstlisting}
+	Copiamos las líneas que introdujimos en la práctica anterior, cambiamos \emph{listen 80} por \emph{listen 443 ssl} y añadimos lo siguiente:
+	\begin{lstlisting}
+	ssl on;
+	ssl_certificate /home/<nombre_usuario>/apache.crt;
+	ssl_certificate_key /home/<nombre_usuario>/apache.key;
+	\end{lstlisting}
+	\item Reiniciamos el servicio:
+	\begin{lstlisting}
+	m1 > sudo systemctl restart nginx
+	\end{lstlisting}
+	\item Comprobamos desde el navegador que ya podemos hacer peticiones HTTPS.
+	\item Ahora configuraremos un cortafuegos para que a M1 y M2 solo se pueda acceder desde el balanceador. Para ello elaboraremos un script:
+	\begin{lstlisting}
+	#!/bin/bash
+	# Run this script with superuser permissions!
+	# Eliminamos las reglas existentes
+	iptables -F;
+	iptables -X;
+	iptables -Z;
+	iptables -t nat -F;
+	# Denegamos todo el tráfico entrante (política inicial)
+	iptables -P INPUT DROP;
+	iptables -P OUTPUT ACCEPT;
+	iptables -P FORWARD DROP;
+	# Permitir acceso desde las loopback addresses (localhost)
+	iptables -A INPUT -i lo -j ACCEPT
+	iptables -A OUTPUT -o lo -j ACCEPT
+	# Puertos 22 (SSH), 80 (HTTP) y 443 (HTTPS) desde el balanceador
+	iptables -A INPUT -i 192.168.56.104 -p tcp -m multiport --dports 22,80,443 -j ACCEPT
+	iptables -A INPUT -i 192.168.56.104 -p tcp -m multiport --sports 22,80,443 -j ACCEPT
+	\end{lstlisting}
+	\item Hacemos que el script se ejecute al inicio del sistema:
+	\begin{lstlisting}
+	m1, m2 > sudo crontab -e
+	\end{lstlisting}
+	Añadimos lo siguiente al final:
+	\begin{lstlisting}
+	@reboot sudo /home/<nombre_usuario>/iptables_servers.sh
+	\end{lstlisting}
+	\item Finalmente creamos un script para M3 (sólo aceptará peticiones HTTP y HTTPS):
+	\begin{lstlisting}
+	#!/bin/bash
+	# Run this script with superuser permissions!
+	# Eliminamos las reglas existentes
+	iptables -F;
+	iptables -X;
+	iptables -Z;
+	iptables -t nat -F;
+	# Denegamos todo el tráfico entrante (política inicial)
+	iptables -P INPUT DROP;
+	iptables -P OUTPUT ACCEPT;
+	iptables -P FORWARD DROP;
+	# Permitir acceso desde las loopback addresses (localhost)
+	iptables -A INPUT -i lo -j ACCEPT
+	iptables -A OUTPUT -o lo -j ACCEPT
+	# Puertos 80 (HTTP) y 443 (HTTPS) desde cualquier IP
+	iptables -A INPUT -p tcp -m multiport --dports 80,443 -j ACCEPT
+	iptables -A INPUT -p tcp -m multiport --sports 80,443 -j ACCEPT
+	\end{lstlisting}
+	\item Repetimos el procedimiento anterior en M3 para que se ejecute el script al inicio.
+\end{enumerate}
+
+
+
 \end{document}
