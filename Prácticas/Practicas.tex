@@ -24,6 +24,7 @@
 \usepackage{titling}
 \usepackage{soul}
 \usepackage{listings}
+\usepackage{listingsutf8}
 \usepackage{array}
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric, arrows, chains, calc,positioning,fit,decorations.pathreplacing}
@@ -498,8 +499,8 @@ En esta práctica configuraremos la seguridad de nuestra granfa mediante un cert
 	iptables -A INPUT -i lo -j ACCEPT
 	iptables -A OUTPUT -o lo -j ACCEPT
 	# Puertos 22 (SSH), 80 (HTTP) y 443 (HTTPS) desde el balanceador
-	iptables -A INPUT -i 192.168.56.104 -p tcp -m multiport --dports 22,80,443 -j ACCEPT
-	iptables -A INPUT -i 192.168.56.104 -p tcp -m multiport --sports 22,80,443 -j ACCEPT
+	iptables -A INPUT -s 192.168.56.104 -p tcp -m multiport --dports 22,80,443 -j ACCEPT
+	iptables -A INPUT -s 192.168.56.104 -p tcp -m multiport --sports 22,80,443 -j ACCEPT
 	\end{lstlisting}
 	\item Hacemos que el script se ejecute al inicio del sistema:
 	\begin{lstlisting}
@@ -531,6 +532,150 @@ En esta práctica configuraremos la seguridad de nuestra granfa mediante un cert
 	\end{lstlisting}
 	\item Repetimos el procedimiento anterior en M3 para que se ejecute el script al inicio.
 \end{enumerate}
+\newpage
+\section{Práctica 5}
+En esta práctica configuraremos la réplica entre bases de datos MySQL en M1 y M2.
+
+\subsection{Clonado manual}
+\begin{enumerate}
+	\item Comenzamos creando una tabla en M1 e insertando algunos datos:
+	\begin{lstlisting}
+	m1 > sudo mysql -u root -p
+	\end{lstlisting}
+	Introducimos nuestra clave, \emph{Swap1234} e insertamos los datos:
+	\begin{lstlisting}
+	mysql (m1) > CREATE DATABASE estudiante;
+	mysql (m1) > USE estudiante;
+	mysql (m1) > CREATE TABLE datos(nombre VARCHAR(100), apellidos VARCHAR(100), usuario VARCHAR(100), email VARCHAR(100));
+	mysql (m1) > INSERT INTO datos(nombre, apellidos, usuario, email) VALUES ('<nombre>', '<apellidos>', '<usuario UGR>', '<correo UGR>');
+	\end{lstlisting}
+	Ejecutamos \emph{SELECT * FROM datos;} y deberíamos ver lo siguiente:
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.65\textwidth]{/p5/select_datos.png}
+	\end{figure}
+	\item Ahora haremos un backup de la base de datos para replicarla en M2. Primero tendremos que bloquear las tablas para que no se escriba en ellas:
+	\begin{lstlisting}
+	mysql (m1) > FLUSH TABLES WITH READ LOCK;
+	mysql (m1) > exit;
+	\end{lstlisting}
+	\item Ahora hacemos el backup:
+	\begin{lstlisting}
+	m1 > sudo mysqldump estudiante -u root -p > /tmp/estudiante.sql
+	\end{lstlisting}
+	\item Desbloqueamos las tablas:
+	\begin{lstlisting}
+	m1 > sudo mysql -u root -p
+	mysql (m1) > UNLOCK TABLES;
+	\end{lstlisting}
+	\item Copiamos el backup a M2:
+	\begin{lstlisting}
+	m1 > sudo scp /tmp/estudiante.sql <usuario>@<IP M2>:/tmp/estudiante.sql
+	\end{lstlisting}
+	\item Creamos la base de datos en M2 y restauramos el archivo:
+	\begin{lstlisting}
+	m2 > sudo mysql -u root -p
+	mysql (m2) > CREATE DATABASE estudiante;
+	mysql (m2) > exit;
+	m2 > sudo mysql -u root -p estudiante < /tmp/estudiante.sql
+	\end{lstlisting}
+\end{enumerate}
+\subsection{Configuración maestro-esclavo}
+\begin{enumerate}
+	\item Editamos el archivo de configuración en M1:
+	\begin{lstlisting}
+	m1 > sudo nano /etc/mysql/mysql.conf.d/mysqld.conf
+	\end{lstlisting}
+		\begin{itemize}
+			\item Comentamos la línea \emph{bind-address}.
+			\item Añadimos los siguientes parámetros:
+			\begin{lstlisting}
+	log_error = /var/log/mysql/error.log
+	server-id = 1
+	log_bin = /var/log/mysql/bin.log
+			\end{lstlisting}
+		\end{itemize}
+	\item Reiniciamos el servicio:
+	\begin{lstlisting}
+	m1 > sudo service mysql restart
+	\end{lstlisting}
+	\item Pasamos a la configuración del esclavo (M2). Debemos editar el archivo de configuración igual que en M1, pero estableciendo \emph{server-id = 2}.
+	\item Crearemos en M1 un usuario para el esclavo, con los permisos necesarios para hacer las réplicas:
+	\begin{lstlisting}
+	m1 > sudo mysql -u root -p
+	mysql (m1) > CREATE USER esclavo IDENTIFIED BY 'esclavo';
+	mysql (m1) > GRANT REPLICATION SLAVE ON *.* TO 'esclavo'@'%' IDENTIFIED BY 'esclavo';
+	mysql (m1) > FLUSH PRIVILEGES;
+	mysql (m1) > FLUSH TABLES;
+	mysql (m1) > FLUSH TABLES WITH READ LOCK;
+	mysql (m1) > SHOW MASTER STATUS;
+	\end{lstlisting}
+	Deberíamos ver algo de este estilo:
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.65\textwidth]{/p5/master_status.png}
+	\end{figure}
+	\item Ahora configuraremos el esclavo con los datos obtenidos anteriormente:
+	\begin{lstlisting}
+	m2 > sudo mysql -u root -p
+	mysql (m2) > CHANGE MASTER TO MASTER_HOST='<IP M1>', MASTER_USER='esclavo', MASTER_PASSWORD='esclavo', MASTER_LOG_FILE='bin.000001', MASTER_LOG_POS=980, MASTER_PORT=3306;
+	mysql (m2) > exit;
+	\end{lstlisting}
+	\item Desactivamos el firewall en las máquinas:
+	\begin{lstlisting}
+	m1, m2 > sudo iptables -A OUTPUT -j ACCEPT ; sudo iptables -A INPUT -j ACCEPT
+	\end{lstlisting}
+	\item Arrancamos el esclavo en M2, desbloqueamos tablas en M1 y vemos el estado del esclavo:
+	\begin{lstlisting}
+		mysql (m2) > START SLAVE;
+		mysql (m1) > UNLOCK TABLES;
+		mysql (m2) > SHOW SLAVE STATUS\G
+	\end{lstlisting}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.65\textwidth]{/p5/slave_status.png}
+	\end{figure}
+	Deberíamos tener el parámetro \emph{SECONDS\_BEHIND\_MASTER} a un valor distinto de NULL.
+	\item Creamos una entrada en M1 y vemos como se replica en M2:
+	\begin{lstlisting}
+	mysql (m1) > USE estudiante;
+	mysql (m1) > INSERT INTO datos VALUES("test12", "test", "test", "test");
+	\end{lstlisting}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.65\textwidth]{/p5/value_replication.png}
+	\end{figure}
+\end{enumerate}
+\subsection{Configuración maestro-maestro}
+\begin{enumerate}
+	\item Comenzamos creando el usuario esclavo en M2 y dándole permisos:
+	\begin{lstlisting}
+	mysql (m2) > CREATE USER esclavo2 IDENTIFIED BY 'esclavo2';
+	mysql (m2) > GRANT REPLICATION SLAVE ON *.* TO 'esclavo2'@'%' IDENTIFIED BY 'esclavo2';
+	mysql (m2) > FLUSH PRIVILEGES;
+	mysql (m2) > FLUSH TABLES;
+	mysql (m2) > FLUSH TABLES WITH READ LOCK;
+	mysql (m2) > SHOW MASTER STATUS;
+	\end{lstlisting}
+	\item Configuramos M1 con los datos obtenidos:
+	\begin{lstlisting}
+	mysql (m1) > CHANGE MASTER TO MASTER_HOST='<IP M2>', MASTER_USER='esclavo2', MASTER_PASSWORD='esclavo2', MASTER_LOG_FILE=<valor File>, MASTER_LOG_POS=<valor Position>, MASTER_PORT=3306;
+	\end{lstlisting}
+	\item Arrancamos el esclavo y desbloqueamos las tablas en el maestro:
+	\begin{lstlisting}
+		mysql (m1) > START SLAVE;
+		mysql (m2) > UNLOCK TABLES;
+		mysql (m1) > SHOW SLAVE STATUS\G
+	\end{lstlisting}
+	\item Insertamos valores para asegurarnos de que funciona bien:
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.65\textwidth]{/p5/master_master_replication.png}
+	\end{figure}
+\end{enumerate}
+
+
+
 
 
 
