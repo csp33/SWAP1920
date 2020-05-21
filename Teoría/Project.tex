@@ -117,7 +117,7 @@ En este proyecto desplegaremos la siguiente arquitectura en \cite{GCP}.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.8\textwidth]{project/architecture.png}
+	\includegraphics[width=0.5\textwidth]{project/architecture.png}
 	\caption{Esquema de la granja web a desplegar}
 \end{figure}
 
@@ -141,12 +141,12 @@ Los principales puntos fuertes de este servicio son los siguientes:
 \begin{figure}[H]
   \begin{subfigure}[t]{0.5\textwidth}
     \centering
-		\includegraphics[width=0.8\textwidth]{project/gcp_products.png}
+		\includegraphics[width=\textwidth]{project/gcp_products.png}
   \end{subfigure}
   \hspace{0.5cm}
   \begin{subfigure}[t]{0.5\textwidth}
     \centering
-		\includegraphics[width=0.8\textwidth]{project/controlpanel.png}
+		\includegraphics[width=\textwidth]{project/controlpanel.png}
   \end{subfigure}
 	\caption{Productos y Panel de Control de GCP}
 \end{figure}
@@ -164,7 +164,7 @@ Algunas de las entidades más famosas que utilizan este servicio son:
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.8\textwidth]{project/logos.png}
+	\includegraphics[width=0.5\textwidth]{project/logos.png}
 	\caption{Empresas que usan GCP}
 \end{figure}
 
@@ -178,68 +178,67 @@ En este proyecto nos centraremos en la herramienta \emph{Compute Engine} (\emph{
 	\item Creamos un proyecto y le damos un nombre:
 	\begin{figure}[H]
 		\centering
-		\includegraphics[width=0.8\textwidth]{project/create_project.png}
+		\includegraphics[width=0.6\textwidth]{project/create_project.png}
 		\caption{Creación del proyecto}
 	\end{figure}
 	\item Creamos una red para los servidores web (Redes $\implies$ Redes VPC):
 	\begin{figure}[H]
 		\centering
-		\includegraphics[width=0.8\textwidth]{project/vpc_creation.png}
+		\includegraphics[width=0.6\textwidth]{project/vpc_creation.png}
 		\caption{Creación de la VPC para los servidores finales}
 	\end{figure}
 	\newpage
 	\item Añadimos una regla de firewall (Redes $\implies$ Reglas de Firewall) a nuestra red y permitimos las conexiones desde cualquier lugar (0.0.0.0/0) al puerto 80 (HTTP):
 		\begin{figure}[H]
 			\centering
-			\includegraphics[width=0.8\textwidth]{project/firewall_creation.png}
+			\includegraphics[width=0.5\textwidth]{project/firewall_creation.png}
 			\caption{Creación de una regla de firewall que permita todas las conexiones HTTP}
 		\end{figure}
 	\item Accedemos a la gestión de grupos de instancias (Compute Engine $\implies$ Grupos de instancias) y creamos un grupo gestionado:
 	\begin{figure}[H]
 		\centering
-		\includegraphics[width=0.8\textwidth]{project/createig.png}
+		\includegraphics[width=0.5\textwidth]{project/createig.png}
 		\caption{Creación del grupo de instancias}
 	\end{figure}
-	\newpage
 	\item Hacemos clic en crear plantilla y elegimos la imagen de Ubuntu 18.04:
 	\begin{figure}[H]
 		\centering
-		\includegraphics[width=0.8\textwidth]{project/createtemplate.png}
+		\includegraphics[width=0.5\textwidth]{project/createtemplate.png}
 		\caption{Creación de la plantilla con la que se lanzarán las instancias}
 	\end{figure}
 	\item Hacemos que se instale el servidor web \emph{apache} al inicio de cada instancia:
 	\begin{figure}[H]
 		\centering
-		\includegraphics[width=0.8\textwidth]{project/automation.png}
+		\includegraphics[width=0.5\textwidth]{project/automation.png}
 		\caption{Instalación del servidor web al inicio de cada instancia}
 	\end{figure}
 	\newpage
 	\item Asignamos la red que creamos anteriormente a la plantilla:
 	\begin{figure}[H]
 		\centering
-		\includegraphics[width=0.8\textwidth]{project/network.png}
+		\includegraphics[width=0.5\textwidth]{project/network.png}
 		\caption{Asignación de red a las instancias}
 	\end{figure}
+	\newpage
 	\item Pasamos a la creación del balanceador de carga (Servicios de red $\implies$ Balanceo de carga)
 	\begin{figure}[H]
 		\centering
-		\includegraphics[width=0.8\textwidth]{project/loadbalancer.png}
+		\includegraphics[width=\textwidth]{project/loadbalancer.png}
 		\caption{Creación del balanceador de carga}
 	\end{figure}
-	\newpage
 	\item Seleccionamos \emph{Balanceo de carga de HTTP(s)}
 	\begin{figure}[H]
 		\centering
-		\includegraphics[width=0.8\textwidth]{project/loadbalancerhttps.png}
+		\includegraphics[width=\textwidth]{project/loadbalancerhttps.png}
 		\caption{Selección de balanceador de carga HTTP(s)}
 	\end{figure}
+	\newpage
 	\item Elegimos el balanceo desde Internet a las VMs
 	\begin{figure}[H]
 		\centering
 		\includegraphics[width=0.8\textwidth]{project/frominternet.png}
 		\caption{Elección del tipo de balanceo}
 	\end{figure}
-	\newpage
 	\item Configuramos el backend eligiendo nuestro grupo de instancias:
 	\begin{figure}[H]
 		\centering
@@ -255,22 +254,23 @@ En este proyecto nos centraremos en la herramienta \emph{Compute Engine} (\emph{
 	\item Creamos una comprobación de estado (determinará si la instancia está disponible y creará una nueva en caso contrario):
 	\begin{figure}[H]
 		\centering
-		\includegraphics[width=0.8\textwidth]{project/status_check.png}
+		\includegraphics[width=0.5\textwidth]{project/status_check.png}
 		\caption{Creación de la comprobación de estado}
 	\end{figure}
+	\newpage
 	\item Pasamos a la configuración del frontend. Le damos nombre y creamos una IP estática:
 	\begin{figure}[H]
 		\centering
 		\includegraphics[width=0.8\textwidth]{project/frontend.png}
 		\caption{Configuración del frontend}
 	\end{figure}
-	\newpage
 	\item Esperamos a que se cree el balanceador y accedemos a su IP externa para comprobar que funciona:
 	\begin{figure}[H]
 		\centering
 		\includegraphics[width=0.8\textwidth]{project/load_balancer_ok.png}
 		\caption{Acceso a la dirección del balanceador}
 	\end{figure}
+	\newpage
 	\item Ahora someteremos el balancerador a mucha carga para comprobar que se cean máquinas nuevas. Utilizaremos \emph{Apache Benchmark (ab)} para ello (desde nuestra máquina):
 	\begin{figure}[H]
 		\centering
@@ -281,15 +281,13 @@ En este proyecto nos centraremos en la herramienta \emph{Compute Engine} (\emph{
 \end{figure}
 	Esto lanzará 100000 peticiones desde 300 usuarios concurrentes contra nuestro balanceador. Lo ejecutamos dos veces y comprobamos la gráfica generada en monitorización:
 	\begin{figure}[H]
-	  \begin{subfigure}[t]{0.5\textwidth}
-	    \centering
-			\includegraphics[width=0.8\textwidth]{project/monitoring.png}
+		\centering
+	  \begin{subfigure}[t]{0.8\textwidth}
+			\includegraphics[width=\textwidth]{project/monitoring.png}
 			\caption{Monitorización del balanceador de carga}
 	  \end{subfigure}
-	  \hspace{0.5cm}
-	  \begin{subfigure}[t]{0.5\textwidth}
-	    \centering
-			\includegraphics[width=0.8\textwidth]{project/monitoring_groups.png}
+	  \begin{subfigure}[t]{0.8\textwidth}
+			\includegraphics[width=\textwidth]{project/monitoring_groups.png}
 			\caption{Monitorización del grupo de instancias}
 	  \end{subfigure}
 		\caption{Monitorización del sistema tras las pruebas de estrés}
@@ -297,21 +295,21 @@ En este proyecto nos centraremos en la herramienta \emph{Compute Engine} (\emph{
 	Podemos observar como, al recibir mucha carga, se ha, creado dos instancias más. Cuando hubo un período de relajación (tiempo entre el final del primer test y el comienzo del segundo), se eliminaron esas dos nuevas instancias y se volvieron a crear al inicio de la segunda prueba de estrés.
 
 \end{enumerate}
-
+\newpage
 \subsection{Asegurar la granja web}
 En el apartado anterior configuramos el firewall para que se pudiera acceder desde cualquier lugar al puerto 80 desde cualquier máquina. En esta sección haremos que sólo podamos conectarnos al balanceador y que las instancias sólo acepten conexiones de éste.
 \begin{enumerate}
 	\item Vamos a Firewall (Redes $\implies$ Reglas de Firewall) y creamos una regla nueva. Debemos seleccionar nuestra red y todas las instancias que estén en ella. En los rangos IP admitidos añadiremos los del balanceador de carga y los del health-check (https://cloud.google.com/load-balancing/docs/https\#firewall\_rules) en el puerto TCP:80.
 	\begin{figure}[H]
 		\centering
-		\includegraphics[width=0.8\textwidth]{project/firewall_balancer.png}
+		\includegraphics[width=0.5\textwidth]{project/firewall_balancer.png}
 		\caption{Creación de la regla de firewall}
 	\end{figure}
 	\item Eliminamos la regla que creamos al principio (permitía conexiones desde cualquier lugar).
 	\item Comprobamos que podemos acceder al balanceador pero no a las instancias mediante sus IPs externas:
 	\begin{figure}[H]
 		\centering
-		\includegraphics[width=0.8\textwidth]{project/new_firewall_ok.png}
+		\includegraphics[width=\textwidth]{project/new_firewall_ok.png}
 		\caption{Comprobación del funcionamiento del firewall}
 	\end{figure}
 \end{enumerate}
