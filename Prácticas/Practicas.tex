@@ -674,6 +674,112 @@ En esta práctica configuraremos la réplica entre bases de datos MySQL en M1 y 
 	\end{figure}
 \end{enumerate}
 
+\section{Práctica 6}
+En esta práctica instalaremos un servidor de disco NFS.
+\begin{enumerate}
+	\item Comenzamos creando una máquina virtual e instalando Ubuntu Server. Si añadimos el adaptador host-only antes de instalar el SO, se configurará automáticamente.
+	Establecemos los parámetros igual que en el resto de máquinas (nombre de usuario y contraseña).
+	\item Instalamos las herramientas NFS:
+	\begin{lstlisting}
+	nfs > sudo apt install -y nfs-kernel-server nfs-common rpcbind
+	\end{lstlisting}
+	\item Creamos la carpeta compartida y ajustamos los permisos:
+	\begin{lstlisting}
+	nfs > sudo mkdir datos
+	nfs > sudo mkdir datos/compartido
+	nfs > sudo chown nobody:nogroup datos/compartido
+	nfs > sudo chmod -R 777 datos/compartido
+	\end{lstlisting}
+	\item Añadimos las IPs de M1 y M2 al archivo de configuración. No debemos poner espacios entre la IP y los permisos:
+	\begin{lstlisting}
+	nfs > sudo nano /etc/exports
+	\end{lstlisting}
+	\begin{lstlisting}
+	/home/usuario/datos/compartido <IP_M1>(rw) <IP_M2>(rw)
+	\end{lstlisting}
+	\item Reiniciamos el servicio NFS y comprobamos que no da fallos:
+	\begin{lstlisting}
+	nfs > sudo service nfs-kernel-server restart
+	nfs > sudo service nfs-kernel-server status
+	\end{lstlisting}
+	\item Pasamos a la configuración de clientes. Empezaremos creando los directorios y el punto de montaje:
+	\begin{lstlisting}
+	m1,m2 > sudo apt install -y nfs-common rpcbind
+	m1,m2 > cd ~; mkdir datos
+	m1,m2 > chmod -R 777 datos
+	\end{lstlisting}
+	\item Montamos la carpeta remota:
+	\begin{lstlisting}
+	m1,m2 > sudo mount <IP_NFS>:/HOME/<usuario>/datos/compartido datos
+	\end{lstlisting}
+	\item Creamos un archivo desde M1 y vemos como es accesible desde M2 y el servidor:
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=\textwidth]{/p6/shared_file.png}
+	\end{figure}
+	\item Ahora haremos que el servidor NFS se monte al inicio del sistema:
+	\begin{lstlisting}
+	m1,m2 > sudo nano /etc/fstab
+	\end{lstlisting}
+	\begin{lstlisting}
+	<IP_NFS>:/home/<usuario>/datos/compartido /home/usuario/datos nfs auto, noatime, nolock, bg, nfsvers=3, intr, tcp, actimeo=1800 0 0
+	\end{lstlisting}
+	\newpage
+	\item Desmontamos la carpeta y cargamos el archivo:
+	\begin{lstlisting}
+	m1,m2 > sudo umount datos
+	m1,m2 > sudo mount -a
+	m1,m2 > sudo mount
+	\end{lstlisting}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=\textwidth]{/p6/mount.png}
+	\end{figure}
+	\item Por último aseguraremos el servidor mediante reglas de firewall. Comenzamos por la denegación implícita de tráfico entrante:
+	\begin{lstlisting}
+	nfs > sudo iptables -P INPUT DROP
+	nfs > sudo iptables -P OUTPUT ACCEPT
+	nfs > sudo iptables -P FORWARD DROP
+	nfs > sudo iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+	\end{lstlisting}
+	\item Establecemos puertos estáticos para los servicios \emph{mountd} (2000) y \emph{nlockmgr} (2001/tcp y 2002/udp)
+	\begin{lstlisting}
+	nfs > sudo nano /etc/default/nfs-kernel-server
+	\end{lstlisting}
+	\begin{lstlisting}
+	RPCMOUNTDOPTS="--manage-grids -p 2000"
+	\end{lstlisting}
+	\item Pasamos a  \emph{nlockmgr}. Creamos el archivo de configuración y añadimos las siguientes líneas:
+	\begin{lstlisting}
+	nfs > sudo nano /etc/systcl.d/swap-nfs-ports.conf
+	\end{lstlisting}
+	\begin{lstlisting}
+	fs.nfs.nlm_tcpport = 2001
+	fs.nfs.nlm_udpport = 2002
+	\end{lstlisting}
+	\item Aplicamos los cambios y reiniciamos el servicio:
+	\begin{lstlisting}
+	nfs > sudo systcl --system
+	nfs > sudo /etc/init.d/nfs-kernel-server restart
+	\end{lstlisting}
+	\item Comprobamos la asignación de puertos:
+	\begin{lstlisting}
+	nfs > sudo rpcinfo -p localhost
+	\end{lstlisting}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.5\textwidth]{/p6/ports.png}
+	\end{figure}
+	\item Ahora que tenemos todos los puertos configurados como estáticos, creamos las reglas de firewall:
+	\begin{lstlisting}
+	nfs > sudo iptables -A INPUT -s <IP_M1>,<IP_M2> -p tcp -m multiport --ports 111,2000,2001,2049 -j ACCEPT
+	nfs > sudo iptables -A INPUT -s <IP_M1>,<IP_M2> -p udp -m multiport --ports 111,2000,2001,2049 -j ACCEPT
+	\end{lstlisting}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=\textwidth]{/p6/file_firewall.png}
+	\end{figure}
+\end{enumerate}
 
 
 
