@@ -751,7 +751,7 @@ En esta práctica instalaremos un servidor de disco NFS.
 	\end{lstlisting}
 	\item Pasamos a  \emph{nlockmgr}. Creamos el archivo de configuración y añadimos las siguientes líneas:
 	\begin{lstlisting}
-	nfs > sudo nano /etc/systcl.d/swap-nfs-ports.conf
+	nfs > sudo nano /etc/sysctl.d/swap-nfs-ports.conf
 	\end{lstlisting}
 	\begin{lstlisting}
 	fs.nfs.nlm_tcpport = 2001
@@ -759,7 +759,7 @@ En esta práctica instalaremos un servidor de disco NFS.
 	\end{lstlisting}
 	\item Aplicamos los cambios y reiniciamos el servicio:
 	\begin{lstlisting}
-	nfs > sudo systcl --system
+	nfs > sudo sysctl --system
 	nfs > sudo /etc/init.d/nfs-kernel-server restart
 	\end{lstlisting}
 	\item Comprobamos la asignación de puertos:

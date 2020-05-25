@@ -1,0 +1,120 @@
+\documentclass[12pt,spanish]{article}
+\usepackage[spanish]{babel}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{amsthm,thmtools}
+\usepackage{dirtytalk}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{subcaption}
+\usepackage{adjustbox}
+\usepackage{amsmath}
+\usepackage{centernot}
+\usepackage{mathtools}
+\usepackage{multirow}
+\usepackage[hidelinks]{hyperref}
+\usepackage{caption}
+\usepackage{eurosym} % para el euro
+\usepackage{amsthm}
+\usepackage{multicol}
+\usepackage{float}
+\usepackage{amsfonts}
+\usepackage{titling}
+\usepackage{soul}
+\usepackage{listings}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, chains, calc,positioning,fit,decorations.pathreplacing}
+\usepackage[framemethod=tikz]{mdframed}
+
+\graphicspath{ {../../img/}}
+\selectlanguage{spanish}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage[a4paper,left=3cm,right=2cm,top=2.5cm,bottom=2.5cm]{geometry}
+
+\newenvironment{solution}{
+	\par
+	\textbf{Solución}
+	\par
+	\begin{center}
+}
+{
+	\end{center}
+}
+
+\lstset{
+  breaklines=true,
+  postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+}
+
+
+\title{Servidores Web de Altas Prestaciones}
+\setlength{\droptitle}{10em}
+\author{Carlos Sánchez Páez}
+
+\makeindex
+\begin{document}
+\definecolor{light-gray}{gray}{0.95}
+\lstset{columns=fullflexible,basicstyle=\ttfamily}
+\surroundwithmdframed[
+  hidealllines=true,
+  backgroundcolor=light-gray,
+  innerleftmargin=0pt,
+  innertopmargin=0pt,
+  innerbottommargin=0pt]{lstlisting}
+
+
+\begin{titlepage}
+
+ \newlength{\centeroffset}
+ \setlength{\centeroffset}{-0.5\oddsidemargin}
+ \addtolength{\centeroffset}{0.5\evensidemargin}
+ \thispagestyle{empty}
+
+ \noindent\hspace*{\centeroffset}
+ \begin{minipage}{\textwidth}
+
+  \centering
+  \includegraphics[width=0.9\textwidth]{logo_ugr.jpg}\\[1.4cm]
+
+  \textsc{ \Large Servidores Web de Altas Prestaciones\\[0.2cm]}
+  \textsc{GRADO EN INGENIERÍA INFORMÁTICA}\\[1cm]
+
+  {\Huge\bfseries Coste de mainframe vs granja \\}
+ \end{minipage}
+
+ \vspace{1.5cm}
+ \noindent\hspace*{\centeroffset}
+ \begin{minipage}{\textwidth}
+  \centering
+
+  \textbf{Autor}\\ {Carlos Sánchez Páez}\\[2.5ex]
+  \includegraphics[width=0.4\textwidth]{etsiit_logo.png}\\[0.1cm]
+  \vspace{1.5cm}
+  \includegraphics[width=0.15\textwidth]{atc.jpg}\\[0.1cm]
+  \vspace{1cm}
+  \textsc{Escuela Técnica Superior de Ingenierías Informática y de Telecomunicación}\\
+  \vspace{1cm}
+  \textsc{Curso 2019-2020}
+ \end{minipage}
+\end{titlepage}
+\thispagestyle{empty}
+\newpage
+
+
+En esta tarea compararemos la diferencia de precio entre un mainframe y una granja web de similares prestaciones.
+
+Compararemos el mainframe IBM z15 (\href{https://www.ibm.com/es-es/marketplace/z15}{https://www.ibm.com/es-es/marketplace/z15}) con un precio inicial de 160.000 dólares. Ofrece un procesador de 5.2Ghz y hasta 40TB de RAM. Veamos cuánto podría costar una granja web con una frecuencia de CPU similar.\\
+
+Nos centraremos en una granja formada por Raspberry Pi 4. Cada una ofrece una CPU de 1.5Ghz y soporta hasta 4GB de RAM. Tienen un coste unitario de 55 dólares.\\
+
+Con 4 Raspberry obtendríamos una frecuencia de CPU distribuida combinada de 6Ghz (0.8Ghz más que el mainframe) a un precio total de 330 dólares (casi 500 veces menos que el mainframe). Si quisiéramos llegar a los 40TB de RAM, tendríamos que dotar a la granja de nada menos que 10.000 Raspberry, obteniendo una frecuencia de 15Ghz (casi tres veces más que la del mainframe). El coste de esta segunda opción sería de 550.000 dólares (casi 4 veces más que el del mainframe).\\
+
+En definitiva, a no ser que necesitamos de una cantidad de RAM altísima, merece más la pena montar una granja web que un mainframe. Además, podremos aprovechar las ventajas del cómputo paralelo.
+
+
+
+\end{document}
