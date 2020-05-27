@@ -1,0 +1,127 @@
+\documentclass[12pt,spanish]{article}
+\usepackage[spanish]{babel}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{amsthm,thmtools}
+\usepackage{dirtytalk}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{subcaption}
+\usepackage{adjustbox}
+\usepackage{amsmath}
+\usepackage{centernot}
+\usepackage{mathtools}
+\usepackage{multirow}
+\usepackage[hidelinks]{hyperref}
+\usepackage{caption}
+\usepackage{eurosym} % para el euro
+\usepackage{amsthm}
+\usepackage{multicol}
+\usepackage{float}
+\usepackage{amsfonts}
+\usepackage{titling}
+\usepackage{soul}
+\usepackage{listings}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, chains, calc,positioning,fit,decorations.pathreplacing}
+\usepackage[framemethod=tikz]{mdframed}
+
+\graphicspath{ {../../img/}}
+\selectlanguage{spanish}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage[a4paper,left=3cm,right=2cm,top=2.5cm,bottom=2.5cm]{geometry}
+
+\newenvironment{solution}{
+	\par
+	\textbf{Solución}
+	\par
+	\begin{center}
+}
+{
+	\end{center}
+}
+
+\lstset{
+  breaklines=true,
+  postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+}
+
+
+\title{Servidores Web de Altas Prestaciones}
+\setlength{\droptitle}{10em}
+\author{Carlos Sánchez Páez}
+
+\makeindex
+\begin{document}
+\definecolor{light-gray}{gray}{0.95}
+\lstset{columns=fullflexible,basicstyle=\ttfamily}
+\surroundwithmdframed[
+  hidealllines=true,
+  backgroundcolor=light-gray,
+  innerleftmargin=0pt,
+  innertopmargin=0pt,
+  innerbottommargin=0pt]{lstlisting}
+
+
+\begin{titlepage}
+
+ \newlength{\centeroffset}
+ \setlength{\centeroffset}{-0.5\oddsidemargin}
+ \addtolength{\centeroffset}{0.5\evensidemargin}
+ \thispagestyle{empty}
+
+ \noindent\hspace*{\centeroffset}
+ \begin{minipage}{\textwidth}
+
+  \centering
+  \includegraphics[width=0.9\textwidth]{logo_ugr.jpg}\\[1.4cm]
+
+  \textsc{ \Large Servidores Web de Altas Prestaciones\\[0.2cm]}
+  \textsc{GRADO EN INGENIERÍA INFORMÁTICA}\\[1cm]
+
+  {\Huge\bfseries LFS (Lustre FileSystem) \\}
+ \end{minipage}
+
+ \vspace{1.5cm}
+ \noindent\hspace*{\centeroffset}
+ \begin{minipage}{\textwidth}
+  \centering
+
+  \textbf{Autor}\\ {Carlos Sánchez Páez}\\[2.5ex]
+  \includegraphics[width=0.4\textwidth]{etsiit_logo.png}\\[0.1cm]
+  \vspace{1.5cm}
+  \includegraphics[width=0.15\textwidth]{atc.jpg}\\[0.1cm]
+  \vspace{1cm}
+  \textsc{Escuela Técnica Superior de Ingenierías Informática y de Telecomunicación}\\
+  \vspace{1cm}
+  \textsc{Curso 2019-2020}
+ \end{minipage}
+\end{titlepage}
+\thispagestyle{empty}
+\newpage
+
+
+En esta tarea veremos qué es LFS, sus ventajas y la arquitectura que plantea.
+
+Lustre File System (LFS) es un sistema de archivos distribuidp paralelo cuyo objetivo principal es servir en entornos con hardware de altas prestaciones (HPC, High Performance Computing). Es el sistema de archivos más utilizado en el top 500 HPCs. Su ventaja principal es la escalabilidad que proporciona, permitiendo transmisiones de archivos muy grandes entre muchos nodos.\\
+
+La arquitectura de LFS se basa en las siguientes capas:
+\begin{itemize}
+	\item OSS (Object Storage Servers). Gestionan el acceso E/S y las peticiones de red.
+	\item OST (Object Storage Targets). Dispositivos de almacenamiento que contienen los datos en sí.
+	\item MDS (MetaData Server). Mapea la ubicación de cada archivo para poder dirigir las peticiones.
+	\item MDT (MetaData Target). Almacena los metadatos de cada archivo (nombre, directorio, permisos, etc.)
+\end{itemize}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{ej71/lustre.jpg}
+	\caption{Arquitectura LFS}
+\end{figure}
+
+
+
+\end{document}
